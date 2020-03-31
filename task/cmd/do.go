@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/seeker815/gophercises/task/db"
 	"github.com/spf13/cobra"
 )
 
@@ -14,21 +15,33 @@ var doCmd = &cobra.Command{
 	Long:  `Marks a task as completed in the todo list`,
 	Run: func(cmd *cobra.Command, args []string) {
 		//call do with numbers rather than task name
-		var taskIDs []int
+		var ids []int
 		for _, arg := range args {
-			taskID, err := strconv.Atoi(arg)
+			id, err := strconv.Atoi(arg)
 			if err != nil {
-				fmt.Println("Please enter task item number to mark task as done")
-				return
-			}
-
-			if taskID > 0 {
-				taskIDs = append(taskIDs, taskID)
+				fmt.Println("Failed to parse the argument:", arg)
 			} else {
-				fmt.Println("Enter a valid task item number")
+				ids = append(ids, id)
 			}
 		}
-		fmt.Println("Tasks marked as complete ", taskIDs)
+		tasks, err := db.AllTasks()
+		if err != nil {
+			fmt.Println("Something went wrong:", err)
+			return
+		}
+		for _, id := range ids {
+			if id <= 0 || id > len(tasks) {
+				fmt.Println("Invalid task number:", id)
+				continue
+			}
+			task := tasks[id-1]
+			err := db.DeleteTask(task.Key)
+			if err != nil {
+				fmt.Printf("Failed to mark \"%d\" as completed. Error: %s\n", id, err)
+			} else {
+				fmt.Printf("Marked \"%d\" as completed.\n", id)
+			}
+		}
 	},
 }
 
