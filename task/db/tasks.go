@@ -10,22 +10,22 @@ import (
 var taskBucket = []byte("tasks")
 var db *bolt.DB
 
-// Task holds the k,v values for bucket
+// Task holds the k,v of the bucket
 type Task struct {
 	Key   int
 	Value string
 }
 
-// Init initalizes the database and creates the bucket
+// Init initializes boltdb
 func Init(dbPath string) error {
-	db, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	var err error
+	db, err = bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 	return db.Update(func(tx *bolt.Tx) error {
-		_, e := tx.CreateBucketIfNotExists(taskBucket)
-		return e
+		_, err := tx.CreateBucketIfNotExists(taskBucket)
+		return err
 	})
 }
 
@@ -45,9 +45,9 @@ func CreateTask(task string) (int, error) {
 	return id, nil
 }
 
-// // AllTasks lists all the tasks in todo list
+// AllTasks lists the tasks in the bucket
 func AllTasks() ([]Task, error) {
-		var tasks []Task
+	var tasks []Task
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(taskBucket)
 		c := b.Cursor()
@@ -65,7 +65,14 @@ func AllTasks() ([]Task, error) {
 	return tasks, nil
 }
 
-// itob returns an 8-byte big endian representation of v.
+// DeleteTask deletes a task from the bucket
+func DeleteTask(key int) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(taskBucket)
+		return b.Delete(itob(key))
+	})
+}
+
 func itob(v int) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(v))
