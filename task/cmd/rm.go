@@ -23,18 +23,20 @@ var rmCmd = &cobra.Command{
 			}
 			ids = append(ids, id)
 		}
-
-		if len(ids) == 0 {
-			fmt.Println("No available tasks in the list to remove")
+		tasks, err := db.AllTasks()
+		if err != nil {
+			fmt.Println("Something went wrong:", err)
 			return
 		}
+
 		// Delete the task from bucket
 		for _, id := range ids {
-			if id <= 0 {
+			if id <= 0 || id > len(tasks) {
 				fmt.Println("Invalid task number:", id)
 				continue
 			}
-			err := db.DeleteTask(id)
+			task := tasks[id-1]
+			err := db.DeleteTask(task.Key)
 			if err != nil {
 				fmt.Printf("Failed to delete \"%d\" task from the list.\n", id)
 			}
